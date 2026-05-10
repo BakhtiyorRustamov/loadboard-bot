@@ -61,8 +61,10 @@
     .pill.active{border-color:var(--accent-border);background:var(--accent-dim);color:var(--accent)}
     .pill.active.team{border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.12);color:var(--team)}
     .pill.active.solo{border-color:rgba(6,182,212,.4);background:rgba(6,182,212,.12);color:var(--solo)}
+    .pill.active.source-usps{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.12);color:var(--success)}
     .pill.active.source-broker{border-color:rgba(59,130,246,.4);background:rgba(59,130,246,.12);color:var(--blue)}
     .pill.active.source-fedex{border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.12);color:var(--team)}
+    .badge-usps{background:rgba(34,197,94,.15);color:var(--success)}
     .badge-broker{background:rgba(59,130,246,.15);color:var(--blue)}
     .badge-fedex{background:rgba(139,92,246,.15);color:var(--team)}
     .btn-primary{width:100%;padding:13px;background:var(--accent);border:none;border-radius:var(--r);color:#fff;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;letter-spacing:.03em;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
@@ -113,11 +115,12 @@
     <div class="field">
       <label>MONITOR LOADS FROM <span>(select at least one)</span></label>
       <div class="pills" id="sourcePills">
-        <div class="pill active source-broker" data-value="broker" onclick="toggleSource('broker')">📦 Load Board</div>
+        <div class="pill active source-usps" data-value="usps" onclick="toggleSource('usps')">📬 USPS</div>
+        <div class="pill active source-broker" data-value="broker" onclick="toggleSource('broker')">📦 Brokers</div>
         <div class="pill active source-fedex" data-value="fedex" onclick="toggleSource('fedex')">🚛 FedEx</div>
       </div>
       <div class="field-hint">
-        Load Board = USPS &amp; Telegram brokers &nbsp;|&nbsp; FedEx = Zuumapp portal
+        USPS = USPS loads only &nbsp;|&nbsp; Brokers = USPS + Telegram brokers &nbsp;|&nbsp; FedEx = Zuumapp portal
       </div>
     </div>
   </div>
@@ -227,13 +230,14 @@
       try {
         const sf = p.source_filter ? JSON.parse(p.source_filter) : null;
         if (sf && Array.isArray(sf)) {
-          if (sf.includes('broker')) sourceBadges += '<span class="badge badge-broker">📦 Board</span>';
+          if (sf.includes('usps'))   sourceBadges += '<span class="badge badge-usps">📬 USPS</span>';
+          if (sf.includes('broker')) sourceBadges += '<span class="badge badge-broker">📦 Brokers</span>';
           if (sf.includes('fedex'))  sourceBadges += '<span class="badge badge-fedex">🚛 FedEx</span>';
         } else {
-          sourceBadges = '<span class="badge badge-broker">📦 Board</span><span class="badge badge-fedex">🚛 FedEx</span>';
+          sourceBadges = '<span class="badge badge-usps">📬 USPS</span><span class="badge badge-broker">📦 Brokers</span><span class="badge badge-fedex">🚛 FedEx</span>';
         }
       } catch(_) {
-        sourceBadges = '<span class="badge badge-broker">📦 Board</span><span class="badge badge-fedex">🚛 FedEx</span>';
+        sourceBadges = '<span class="badge badge-usps">📬 USPS</span><span class="badge badge-broker">📦 Brokers</span><span class="badge badge-fedex">🚛 FedEx</span>';
       }
       return `
       <div class="alert-card ${p.is_active?'':'inactive'}" id="card-${p.id}">

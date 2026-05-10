@@ -179,8 +179,21 @@ async function runMonitor() {
         for (const load of loads) {
           // Apply source filter — skip loads not matching the user's selected sources
           if (sourceFilter && Array.isArray(sourceFilter) && sourceFilter.length > 0) {
-            const cat = load.sourceCategory || (load.source === 'FedEx' ? 'fedex' : 'broker');
-            if (!sourceFilter.includes(cat)) continue;
+            const cat = load.sourceCategory || (load.source === 'FedEx' ? 'fedex' : 'usps');
+            // 'usps' source: only USPS loads (sourceCategory === 'usps')
+            // 'broker' source: both USPS and broker loads (sourceCategory === 'usps' or 'broker')
+            // 'fedex' source: only FedEx loads (sourceCategory === 'fedex')
+            let matchesSource = false;
+            if (cat === 'fedex') {
+              matchesSource = sourceFilter.includes('fedex');
+            } else if (cat === 'broker') {
+              // Telegram broker loads only show if 'broker' is selected
+              matchesSource = sourceFilter.includes('broker');
+            } else {
+              // USPS loads show if either 'usps' or 'broker' is selected
+              matchesSource = sourceFilter.includes('usps') || sourceFilter.includes('broker');
+            }
+            if (!matchesSource) continue;
           }
 
           const notifKey = `${pref.id}:${load.id}`;
@@ -237,7 +250,8 @@ async function sendLoadNotification(telegramId, load, pref, matchInfo) {
                       (load.status||'').toLowerCase().includes('soon') ? '🟡' : '🟢';
 
   // Determine source label for the notification header
-  const sourceLabel = load.source === 'FedEx' ? 'FedEx' : 'Load Board';
+  const sourceLabel = load.source === 'FedEx' ? 'FedEx'
+    : (load.sourceCategory === 'broker' ? 'Broker' : 'USPS');
 
   const lines = [
     `🔔 *New ${sourceLabel} Load Within Range!*`,
@@ -255,9 +269,10 @@ async function sendLoadNotification(telegramId, load, pref, matchInfo) {
   if (load.status) lines.push(`${statusEmoji} *Status:* ${load.status}`);
 
   // Add appropriate link based on source
+  const loadboardBase = process.env.LOADBOARD_URL || 'https://loadboard.apps.tie.uz/';
   const boardUrl = load.source === 'FedEx'
     ? 'https://carrier-fedex.zuumapp.com/main/shipments'
-    : (process.env.LOADBOARD_URL || 'https://loadboard.apps.tie.uz/');
+    : (load.sourceCategory === 'broker' ? loadboardBase + '?tab=broker' : loadboardBase);
   lines.push(`\n🔗 [View on ${sourceLabel}](${boardUrl})`);
 
   try {
