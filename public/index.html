@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+  <title>Load Board Alerts</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root{--bg:#0d0f14;--surface:#151820;--surface2:#1c2030;--border:#252a3a;--accent:#f97316;--accent-dim:rgba(249,115,22,0.12);--accent-border:rgba(249,115,22,0.3);--text:#e8eaf0;--muted:#6b7280;--success:#22c55e;--danger:#ef4444;--blue:#3b82f6;--team:#8b5cf6;--solo:#06b6d4;--r:10px}
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:120px}
+    .header{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding:14px 18px 12px;display:flex;align-items:center;gap:10px}
+    .header-icon{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+    .header-text h1{font-size:15px;font-weight:800;letter-spacing:.02em;line-height:1}
+    .header-text p{font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;margin-top:2px}
+    .status-dot{width:7px;height:7px;border-radius:50%;background:var(--success);margin-left:auto;box-shadow:0 0 8px var(--success);animation:pulse 2s ease-in-out infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .tabs{display:flex;gap:4px;padding:10px 18px;background:var(--bg);border-bottom:1px solid var(--border)}
+    .tab{flex:1;padding:8px 0;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:all .2s;text-align:center}
+    .tab.active{background:var(--accent-dim);border-color:var(--accent-border);color:var(--accent)}
+    .page{display:none;padding:14px 18px}.page.active{display:block}
+    /* Alert cards */
+    .alerts-list{display:flex;flex-direction:column;gap:10px}
+    .alert-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;animation:slideIn .25s ease}
+    .alert-card.inactive{opacity:.5}
+    @keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .alert-header{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;border-bottom:1px solid var(--border)}
+    .alert-name{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+    .badge{font-size:9px;font-family:'Space Mono',monospace;padding:2px 6px;border-radius:4px;font-weight:700}
+    .badge-on{background:rgba(34,197,94,.15);color:var(--success)}.badge-off{background:rgba(107,114,128,.15);color:var(--muted)}
+    .badge-team{background:rgba(139,92,246,.15);color:var(--team)}.badge-solo{background:rgba(6,182,212,.15);color:var(--solo)}
+    .alert-actions{display:flex;gap:5px}
+    .btn-icon{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+    .btn-icon:hover{border-color:var(--accent-border);color:var(--accent)}.btn-icon.danger:hover{border-color:rgba(239,68,68,.4);color:var(--danger)}
+    .alert-body{padding:11px 13px;display:flex;flex-direction:column;gap:6px}
+    .alert-row{display:flex;align-items:flex-start;gap:6px;font-size:12px}
+    .alert-row .lbl{color:var(--muted);font-family:'Space Mono',monospace;font-size:10px;min-width:68px;padding-top:1px}
+    .alert-row .val{color:var(--text);font-weight:600;line-height:1.4;white-space:pre-wrap;word-break:break-word}
+    .empty-state{text-align:center;padding:55px 20px;color:var(--muted)}
+    .empty-state .emoji{font-size:44px;margin-bottom:10px}
+    .empty-state h3{font-size:15px;font-weight:700;margin-bottom:5px;color:var(--text)}
+    .empty-state p{font-size:12px;line-height:1.5}
+    /* Form */
+    .form-title{font-size:17px;font-weight:800;margin-bottom:14px}
+    .form-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px}
+    .section-title{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);font-family:'Space Mono',monospace;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+    .section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+    .field{display:flex;flex-direction:column;gap:5px}.field+.field{margin-top:10px}
+    .field label{font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;font-weight:700;letter-spacing:.05em;display:flex;justify-content:space-between}
+    .field label span{color:var(--accent)}
+    .field input,.field select,.field textarea{width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;font-weight:600;outline:none;transition:border-color .2s;-webkit-appearance:none;resize:vertical}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent-border)}
+    .field input::placeholder,.field textarea::placeholder{color:var(--muted);font-weight:400;font-size:12px}
+    .field textarea{min-height:110px;line-height:1.6}
+    .field select option{background:var(--surface2)}
+    .field-hint{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.4;font-family:'Space Mono',monospace}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+    .pill{padding:6px 12px;border:1px solid var(--border);border-radius:20px;background:var(--surface2);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;font-family:'Space Mono',monospace}
+    .pill.active{border-color:var(--accent-border);background:var(--accent-dim);color:var(--accent)}
+    .pill.active.team{border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.12);color:var(--team)}
+    .pill.active.solo{border-color:rgba(6,182,212,.4);background:rgba(6,182,212,.12);color:var(--solo)}
+    .pill.active.source-broker{border-color:rgba(59,130,246,.4);background:rgba(59,130,246,.12);color:var(--blue)}
+    .pill.active.source-fedex{border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.12);color:var(--team)}
+    .badge-broker{background:rgba(59,130,246,.15);color:var(--blue)}
+    .badge-fedex{background:rgba(139,92,246,.15);color:var(--team)}
+    .btn-primary{width:100%;padding:13px;background:var(--accent);border:none;border-radius:var(--r);color:#fff;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;letter-spacing:.03em;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+    .btn-primary:hover{background:#ea6c0c}.btn-primary:active{transform:scale(.98)}.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+    .btn-secondary{width:100%;padding:11px;background:transparent;border:1px solid var(--border);border-radius:var(--r);color:var(--muted);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:7px}
+    .btn-secondary:hover{border-color:var(--accent-border);color:var(--accent)}
+    .spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .toast{position:fixed;bottom:75px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 16px;font-size:12px;font-weight:600;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;z-index:999}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .toast.success{border-color:rgba(34,197,94,.4);color:var(--success)}.toast.error{border-color:rgba(239,68,68,.4);color:var(--danger)}
+    .char-count{font-size:10px;color:var(--muted);text-align:right;margin-top:3px;font-family:'Space Mono',monospace}
+  </style>
+</head>
+<body>
+<div class="header">
+  <div class="header-icon">🚚</div>
+  <div class="header-text"><h1>Load Board Alerts</h1><p>RADIUS-BASED MONITORING</p></div>
+  <div class="status-dot"></div>
+</div>
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('alerts')">My Alerts</button>
+  <button class="tab" onclick="switchTab('new')">+ New Alert</button>
+</div>
+
+<!-- Alerts Tab -->
+<div class="page active" id="page-alerts">
+  <div class="alerts-list" id="alertsList">
+    <div class="empty-state"><div class="emoji">📭</div><h3>No Alerts Yet</h3><p>Tap "+ New Alert" to start.</p></div>
+  </div>
+</div>
+
+<!-- New / Edit Alert Tab -->
+<div class="page" id="page-new">
+  <div class="form-title" id="formTitle">New Alert</div>
+  <input type="hidden" id="editingId"/>
+
+  <div class="form-section">
+    <div class="section-title">Alert Name</div>
+    <div class="field">
+      <label>LABEL <span>(optional)</span></label>
+      <input type="text" id="prefName" placeholder="e.g. Teams East Coast"/>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="section-title">Load Sources</div>
+    <div class="field">
+      <label>MONITOR LOADS FROM <span>(select at least one)</span></label>
+      <div class="pills" id="sourcePills">
+        <div class="pill active source-broker" data-value="broker" onclick="toggleSource('broker')">📦 Load Board</div>
+        <div class="pill active source-fedex" data-value="fedex" onclick="toggleSource('fedex')">🚛 FedEx</div>
+      </div>
+      <div class="field-hint">
+        Load Board = USPS &amp; Telegram brokers &nbsp;|&nbsp; FedEx = Zuumapp portal
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="section-title">Truck Locations</div>
+    <div class="field">
+      <label>PASTE YOUR TRUCK LIST <span>one per line</span></label>
+      <textarea id="trucksText"
+        placeholder="Chicago, IL&#10;Memphis TN&#10;T-101: Dallas, TX&#10;Saint Paul MN&#10;41.88, -87.63"
+        oninput="updateCharCount()"></textarea>
+      <div class="char-count" id="charCount">0 trucks</div>
+      <div class="field-hint">
+        Accepted formats: &nbsp;City, ST &nbsp;|&nbsp; City ST &nbsp;|&nbsp; Label: City ST &nbsp;|&nbsp; lat, lon
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="section-title">Load Type Filter</div>
+    <div class="field">
+      <label>FILTER BY DRIVER TYPE</label>
+      <div class="pills" id="typePills">
+        <div class="pill active" data-value="" onclick="selectType('')">Any Type</div>
+        <div class="pill" data-value="TEAM" onclick="selectType('TEAM')">👥 Team</div>
+        <div class="pill" data-value="SOLO" onclick="selectType('SOLO')">👤 Solo</div>
+      </div>
+      <input type="hidden" id="loadTypeFilter" value=""/>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="section-title">Search Radius</div>
+    <div class="field">
+      <label>MATCH LOADS WITHIN</label>
+      <div class="pills" id="radiusPills">
+        <div class="pill" data-value="50" onclick="selectRadius(50)">50 mi</div>
+        <div class="pill active" data-value="100" onclick="selectRadius(100)">100 mi</div>
+        <div class="pill" data-value="150" onclick="selectRadius(150)">150 mi</div>
+        <div class="pill" data-value="200" onclick="selectRadius(200)">200 mi</div>
+        <div class="pill" data-value="250" onclick="selectRadius(250)">250 mi</div>
+      </div>
+      <input type="hidden" id="radiusMiles" value="100"/>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="section-title">Date Range <span style="color:var(--muted);font-size:9px;font-weight:400;">(optional)</span></div>
+    <div class="field-row">
+      <div class="field"><label>FROM DATE</label><input type="date" id="pickupDate"/></div>
+      <div class="field"><label>TO DATE</label><input type="date" id="pickupDateEnd"/></div>
+    </div>
+  </div>
+
+  <button class="btn-primary" id="saveBtn" onclick="savePreference()">
+    <span id="saveBtnText">Save Alert</span>
+  </button>
+  <button class="btn-secondary" onclick="resetForm()">Clear Form</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const tg = window.Telegram?.WebApp;
+  let telegramId = null, username = null, firstName = null;
+  if (tg) {
+    tg.ready(); tg.expand();
+    tg.setHeaderColor?.('#0d0f14'); tg.setBackgroundColor?.('#0d0f14');
+    const u = tg.initDataUnsafe?.user;
+    if (u) { telegramId = u.id; username = u.username; firstName = u.first_name; }
+  }
+  if (!telegramId) telegramId = parseInt(new URLSearchParams(location.search).get('user_id')) || null;
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach((t,i) =>
+      t.classList.toggle('active', (i===0&&tab==='alerts')||(i===1&&tab==='new')));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById(`page-${tab}`).classList.add('active');
+    if (tab==='alerts') loadAlerts();
+  }
+
+  async function loadAlerts() {
+    if (!telegramId) { renderAlerts([]); return; }
+    try {
+      const res = await fetch(`/api/preferences/${telegramId}`);
+      const data = await res.json();
+      renderAlerts(data.preferences || []);
+    } catch { showToast('Failed to load','error'); }
+  }
+
+  function renderAlerts(prefs) {
+    const list = document.getElementById('alertsList');
+    if (!prefs.length) {
+      list.innerHTML = `<div class="empty-state"><div class="emoji">📭</div><h3>No Alerts Yet</h3><p>Tap "+ New Alert" to start monitoring.</p></div>`;
+      return;
+    }
+    list.innerHTML = prefs.map(p => {
+      const trucks = (p.trucks_text||'').split('\n').filter(l=>l.trim());
+      const preview = trucks.slice(0,3).join('\n') + (trucks.length>3 ? `\n+${trucks.length-3} more` : '');
+      let dateStr = '';
+      if (p.pickup_date && p.pickup_date_end) dateStr = `${p.pickup_date} → ${p.pickup_date_end}`;
+      else if (p.pickup_date) dateStr = `From ${p.pickup_date}`;
+      const typeBadge = p.load_type_filter
+        ? `<span class="badge badge-${p.load_type_filter.toLowerCase()}">${p.load_type_filter==='TEAM'?'👥':'👤'} ${p.load_type_filter}</span>` : '';
+      // Source badges
+      let sourceBadges = '';
+      try {
+        const sf = p.source_filter ? JSON.parse(p.source_filter) : null;
+        if (sf && Array.isArray(sf)) {
+          if (sf.includes('broker')) sourceBadges += '<span class="badge badge-broker">📦 Board</span>';
+          if (sf.includes('fedex'))  sourceBadges += '<span class="badge badge-fedex">🚛 FedEx</span>';
+        } else {
+          sourceBadges = '<span class="badge badge-broker">📦 Board</span><span class="badge badge-fedex">🚛 FedEx</span>';
+        }
+      } catch(_) {
+        sourceBadges = '<span class="badge badge-broker">📦 Board</span><span class="badge badge-fedex">🚛 FedEx</span>';
+      }
+      return `
+      <div class="alert-card ${p.is_active?'':'inactive'}" id="card-${p.id}">
+        <div class="alert-header">
+          <div class="alert-name">🔔 ${escHtml(p.name)}
+            <span class="badge ${p.is_active?'badge-on':'badge-off'}">${p.is_active?'ON':'OFF'}</span>
+            ${typeBadge}
+            ${sourceBadges}
+          </div>
+          <div class="alert-actions">
+            <button class="btn-icon" onclick="toggleAlert(${p.id})">${p.is_active?'⏸':'▶️'}</button>
+            <button class="btn-icon" onclick='editAlert(${JSON.stringify(p).replace(/'/g,"&#39;")})'> ✏️</button>
+            <button class="btn-icon danger" onclick="deleteAlert(${p.id})">🗑️</button>
+          </div>
+        </div>
+        <div class="alert-body">
+          <div class="alert-row"><span class="lbl">🚛 TRUCKS</span><span class="val">${escHtml(preview||'—')}</span></div>
+          <div class="alert-row"><span class="lbl">📏 RADIUS</span><span class="val">${p.radius_miles||100} miles</span></div>
+          ${dateStr?`<div class="alert-row"><span class="lbl">📅 DATES</span><span class="val">${escHtml(dateStr)}</span></div>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function updateCharCount() {
+    const n = document.getElementById('trucksText').value.split('\n').filter(l=>l.trim()).length;
+    document.getElementById('charCount').textContent = `${n} truck${n!==1?'s':''}`;
+  }
+
+  function selectRadius(val) {
+    document.getElementById('radiusMiles').value = val;
+    document.querySelectorAll('#radiusPills .pill').forEach(p =>
+      p.classList.toggle('active', parseInt(p.dataset.value)===val));
+  }
+
+  function toggleSource(val) {
+    const pill = document.querySelector(`#sourcePills .pill[data-value="${val}"]`);
+    if (!pill) return;
+    pill.classList.toggle('active');
+    pill.classList.toggle(`source-${val}`, pill.classList.contains('active'));
+    // Ensure at least one is selected
+    const selected = getSelectedSources();
+    if (selected.length === 0) {
+      pill.classList.add('active', `source-${val}`);
+      showToast('At least one source required', 'error');
+    }
+  }
+
+  function getSelectedSources() {
+    const pills = document.querySelectorAll('#sourcePills .pill.active');
+    return Array.from(pills).map(p => p.dataset.value);
+  }
+
+  function setSelectedSources(sources) {
+    document.querySelectorAll('#sourcePills .pill').forEach(p => {
+      const val = p.dataset.value;
+      const isActive = !sources || sources.length === 0 || sources.includes(val);
+      p.classList.toggle('active', isActive);
+      p.classList.toggle(`source-${val}`, isActive);
+    });
+  }
+
+  function selectType(val) {
+    document.getElementById('loadTypeFilter').value = val;
+    document.querySelectorAll('#typePills .pill').forEach(p => {
+      const isActive = p.dataset.value === val;
+      p.classList.toggle('active', isActive);
+      p.classList.remove('team','solo');
+      if (isActive && val === 'TEAM') p.classList.add('team');
+      if (isActive && val === 'SOLO') p.classList.add('solo');
+    });
+  }
+
+  async function savePreference() {
+    if (!telegramId) { showToast('Open via Telegram','error'); return; }
+    const trucksText = document.getElementById('trucksText').value.trim();
+    if (!trucksText) { showToast('Enter at least one truck location','error'); return; }
+
+    const sourceFilter = getSelectedSources();
+    if (sourceFilter.length === 0) { showToast('Select at least one source','error'); return; }
+
+    const preference = {
+      id: document.getElementById('editingId').value ? parseInt(document.getElementById('editingId').value) : null,
+      name: document.getElementById('prefName').value.trim(),
+      trucksText,
+      sourceFilter,
+      loadTypeFilter: document.getElementById('loadTypeFilter').value || null,
+      radiusMiles: parseInt(document.getElementById('radiusMiles').value) || 100,
+      pickupDate: document.getElementById('pickupDate').value || null,
+      pickupDateEnd: document.getElementById('pickupDateEnd').value || null,
+      isActive: true,
+    };
+
+    const btn = document.getElementById('saveBtn');
+    const txt = document.getElementById('saveBtnText');
+    btn.disabled = true; txt.innerHTML = '<span class="spinner"></span>';
+
+    try {
+      const res = await fetch('/api/preferences', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ telegramId, username, firstName, preference }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(preference.id ? 'Alert updated! ✅' : 'Alert saved! ✅', 'success');
+        resetForm(); switchTab('alerts');
+      } else { showToast('Error: '+data.error,'error'); }
+    } catch { showToast('Network error','error'); }
+    finally { btn.disabled=false; txt.textContent = preference.id ? 'Update Alert' : 'Save Alert'; }
+  }
+
+  function editAlert(p) {
+    document.getElementById('editingId').value = p.id;
+    document.getElementById('prefName').value = p.name||'';
+    document.getElementById('trucksText').value = p.trucks_text||'';
+    document.getElementById('pickupDate').value = p.pickup_date||'';
+    document.getElementById('pickupDateEnd').value = p.pickup_date_end||'';
+    selectRadius(p.radius_miles||100);
+    selectType(p.load_type_filter||'');
+    try {
+      const sf = p.source_filter ? JSON.parse(p.source_filter) : null;
+      setSelectedSources(sf);
+    } catch(_) { setSelectedSources(null); }
+    updateCharCount();
+    document.getElementById('formTitle').textContent = 'Edit Alert';
+    document.getElementById('saveBtnText').textContent = 'Update Alert';
+    switchTab('new');
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function resetForm() {
+    document.getElementById('editingId').value='';
+    document.getElementById('prefName').value='';
+    document.getElementById('trucksText').value='';
+    document.getElementById('pickupDate').value='';
+    document.getElementById('pickupDateEnd').value='';
+    selectRadius(100); selectType(''); setSelectedSources(null); updateCharCount();
+    document.getElementById('formTitle').textContent='New Alert';
+    document.getElementById('saveBtnText').textContent='Save Alert';
+  }
+
+  async function toggleAlert(pid) {
+    try {
+      const res = await fetch(`/api/preferences/${telegramId}/${pid}/toggle`,{method:'PATCH'});
+      const data = await res.json();
+      if (data.success) { showToast(data.is_active?'Enabled 🟢':'Paused 🔴','success'); loadAlerts(); }
+    } catch { showToast('Network error','error'); }
+  }
+
+  async function deleteAlert(pid) {
+    if (!confirm('Delete this alert?')) return;
+    try {
+      await fetch(`/api/preferences/${telegramId}/${pid}`,{method:'DELETE'});
+      showToast('Deleted','success'); loadAlerts();
+    } catch { showToast('Network error','error'); }
+  }
+
+  let toastT;
+  function showToast(msg,type='success') {
+    const el=document.getElementById('toast');
+    el.textContent=msg; el.className=`toast ${type} show`;
+    clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'),2500);
+  }
+  function escHtml(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+  loadAlerts();
+</script>
+</body>
+</html>
