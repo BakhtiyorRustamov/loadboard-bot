@@ -1,6 +1,6 @@
 # 🚚 USPS Load Board Alert Bot
 
-A Telegram Mini App that monitors [loadboard.apps.tie.uz](https://loadboard.apps.tie.uz/) every minute and notifies users when loads matching their preferences appear.
+A Telegram Mini App that monitors [tezway.net](https://tezway.net/) every minute and notifies users when loads matching their preferences appear.
 
 ---
 
@@ -64,7 +64,7 @@ TELEGRAM_BOT_TOKEN=7123456789:AAFxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 BOT_USERNAME=your_bot_username
 APP_URL=https://yourdomain.com        # must be HTTPS for Telegram Mini Apps
 PORT=3000
-LOADBOARD_URL=https://loadboard.apps.tie.uz/
+LOADBOARD_URL=https://tezway.net/
 CHECK_INTERVAL_SECONDS=60
 ```
 

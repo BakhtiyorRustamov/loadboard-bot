@@ -269,7 +269,7 @@ async function sendLoadNotification(telegramId, load, pref, matchInfo) {
   if (load.status) lines.push(`${statusEmoji} *Status:* ${load.status}`);
 
   // Add appropriate link based on source
-  const loadboardBase = process.env.LOADBOARD_URL || 'https://loadboard.apps.tie.uz/';
+  const loadboardBase = process.env.LOADBOARD_URL || 'https://tezway.net/';
   const boardUrl = load.source === 'FedEx'
     ? 'https://carrier-fedex.zuumapp.com/main/shipments'
     : (load.sourceCategory === 'broker' ? loadboardBase + '?tab=broker' : loadboardBase);
