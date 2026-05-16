@@ -1,7 +1,7 @@
 const axios = require('axios');
 const { geocode, distanceMiles } = require('./geocoder');
 
-const LOADBOARD_URL = process.env.LOADBOARD_URL || 'https://loadboard.apps.tie.uz/';
+const LOADBOARD_URL = process.env.LOADBOARD_URL || 'https://tezway.net/';
 const API_URL = LOADBOARD_URL.replace(/\/$/, '') + '/api/loads';
 
 async function scrapeLoads() {
